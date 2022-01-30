@@ -1,0 +1,11 @@
+image: jfining/namesilo-operator:latest
+imageConfig:
+  pullPolicy: Always
+
+API_KEY: ""
+DOMAIN: "example.com"
+
+serviceAccount:
+  create: true
+  name: namesilo-operator
+

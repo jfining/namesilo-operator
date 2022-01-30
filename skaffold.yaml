@@ -1,0 +1,44 @@
+apiVersion: skaffold/v2beta26
+kind: Config
+build:
+  artifacts:
+  - image: jfining/namesilo-operator
+  tagPolicy:
+    dateTime:
+      format: "2006-01-02_15-04-05.999_MST"
+      timezone: "Local"
+deploy:
+  kubectl:
+    defaultNamespace: kube-system
+    manifests:
+      - k8s-*
+
+
+apiVersion: skaffold/v2beta10
+kind: Config
+metadata:
+  name: namesilo-operator-test
+build:
+  local:
+    push: true
+  tagPolicy:
+    dateTime:
+      format: "2006-01-02_15-04-05.999_MST"
+      timezone: "GMT"
+  artifacts:
+  - image: jfining/namesilo-operator
+    docker:
+      dockerfile: Dockerfile
+deploy:
+  #kubeContext:
+  helm:
+    releases:
+    - name: namesilo-operator-test
+      namespace: "kube-system" 
+      wait: true    
+      chartPath: ./chart
+      artifactOverrides:
+        image: jfining/namesilo-operator
+      setValues:
+        API_KEY: ""
+        DOMAIN: "example.com"
