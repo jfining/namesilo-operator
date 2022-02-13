@@ -1,4 +1,4 @@
-image: jfining/namesilo-operator:latest
+image: jfining/namesilo-operator:v0.0.4
 imageConfig:
   pullPolicy: Always
 

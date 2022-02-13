@@ -19,7 +19,7 @@ exec: build
 
 dirty:
 	@git diff --quiet --exit-code || { echo "Unstaged changes!"; exit 1; }
-
+#TODO: bump the tag references in the helm charts automatically
 publish: format dirty build
 	@echo $(VERSION)
 	git tag -a $(VERSION) -m "Version bump"
