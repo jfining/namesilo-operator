@@ -44,7 +44,7 @@ def _init():
 
 def get_services():
     services_response = CORE_API.list_service_for_all_namespaces()
-    return services_response
+    return services_response.items
 
 
 def get_ingresses():
@@ -120,15 +120,40 @@ def create_or_update_cname_record(hostname, parent):
     return
 
 
-def hook_main():
-    public_ip = get_public_ip()
-    create_or_update_a_record("902", public_ip)
+def edit_challenge_service(services):
+    for service in services:
+        if "cm-acme-http-solver" in service.metadata.name:
+            name = service.metadata.name
+            namespace = service.metadata.namespace
+            print(f"Found acme solver: {name} in {namespace}")
+            try:
+                service.spec.ports[0].node_port = 31936
+                CORE_API.patch_namespaced_service(name, namespace, service)
+            except Exception as e:
+                print("Error updating cm-acme service:", e)
+            # Since we only have 1 port forwarded, return as soon as one is edited.
+            # Eventually this will do all of them lol. Could also try to "reserve" more than 1 port
+            return
+
+
+def services_task():
+    services = get_services()
+    edit_challenge_service(services)
+
+
+def dns_task(public_ip):
     certs = get_certificates()
     for cert in certs:
         hostnames = cert["spec"]["dnsNames"]
         for hostname in hostnames:
             create_or_update_a_record(hostname.split(DOMAIN)[0][0:-1], public_ip)
-    # TODO: get services, find cm-acme one, and change it to forwarded port on router
+
+
+def hook_main():
+    public_ip = get_public_ip()
+    create_or_update_a_record("902", public_ip)
+    dns_task(public_ip)
+    services_task()
 
 
 if __name__ == "__main__":
@@ -156,4 +181,5 @@ if __name__ == "__main__":
         exit()
     else:
         _init()
-        hook_main()
+        #hook_main()
+        services_task()
