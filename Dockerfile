@@ -5,11 +5,11 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 RUN python -m ensurepip --upgrade
 RUN ln -s /usr/bin/pip3 /usr/bin/pip
 
-ADD requirements.txt /hooks
+ADD requirements.txt /tmp
 
 WORKDIR /hooks
 
-RUN pip install -r requirements.txt
+RUN pip install -r /tmp/requirements.txt
 
 ADD operator-hook.py /hooks
 

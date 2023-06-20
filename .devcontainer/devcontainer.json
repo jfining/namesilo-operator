@@ -1,0 +1,13 @@
+{
+    "name": "React VS Code Remote Container",
+    "dockerFile": "Dockerfile",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+    "workspaceFolder": "/workspace",
+    "appPort": "0.0.0.0:3000:3000",
+    "extensions": [
+	],
+    "settings": {
+        "terminal.integrated.shell.linux": "/bin/zsh"
+    },
+    //"postCreateCommand": "git clone git@github.com:jfining/number-guess.git && cd /workspace/number-guess/ && yarn"
+}

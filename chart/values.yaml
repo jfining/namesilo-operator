@@ -4,6 +4,7 @@ imageConfig:
 
 API_KEY: ""
 DOMAIN: "example.com"
+OWNED_SUBDOMAIN: "examplesubdomain"
 
 serviceAccount:
   create: true

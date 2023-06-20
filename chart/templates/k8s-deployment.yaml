@@ -41,6 +41,8 @@ spec:
               value: "{{ .Values.API_KEY }}"
             - name: DOMAIN
               value: "{{ .Values.DOMAIN }}"
+            - name: OWNED_SUBDOMAIN
+              value: "{{ .Values.OWNED_SUBDOMAIN }}"
           {{- if or .Values.env .Values.secretEnv }}
             {{- range .Values.env }}
             - name: {{ .name }}

@@ -11,6 +11,8 @@ VERSION = "1"
 TYPE = "xml"
 API_KEY = os.environ.get("API_KEY", "")
 DOMAIN = os.environ.get("DOMAIN", "")
+OWNED_SUBDOMAIN = os.environ.get("OWNED_SUBDOMAIN", "")
+ACME_NODEPORT = int(os.environ.get("ACME_NODEPORT", "32494"))
 
 K8S_CLIENT = None
 CORE_API = None
@@ -42,6 +44,13 @@ def _init():
     _kube_setup()
 
 
+def _is_controlled_domain(fqdn):
+    if fqdn[-len(DOMAIN):] == DOMAIN:
+        return True
+    else:
+        return False
+
+
 def get_services():
     services_response = CORE_API.list_service_for_all_namespaces()
     return services_response.items
@@ -49,7 +58,7 @@ def get_services():
 
 def get_ingresses():
     ingress_response = NETWORK_API.list_ingress_for_all_namespaces()
-    return ingress_response
+    return ingress_response.items
 
 
 def get_certificates():
@@ -127,21 +136,26 @@ def edit_challenge_service(services):
             namespace = service.metadata.namespace
             print(f"Found acme solver: {name} in {namespace}")
             try:
-                service.spec.ports[0].node_port = 31936
+                service.spec.ports[0].node_port = ACME_NODEPORT
                 CORE_API.patch_namespaced_service(name, namespace, service)
             except Exception as e:
                 print("Error updating cm-acme service:", e)
             # Since we only have 1 port forwarded, return as soon as one is edited.
             # Eventually this will do all of them lol. Could also try to "reserve" more than 1 port
+            ## I don't think the above is possible given acme challenged must hit port 80 of the internet IP
+            ## Forwarding rules thereafter would be complicated with more than 1 final nodeport
+            ## Although, the real final evolution should be this operator changes the haproxy configuration
+            ## so that the right hostname frontend is directed to the right nodeport backend...
+            ## TODO: check if the haproxy frontend config can specify hosts 
             return
 
 
-def services_task():
+def acme_services_task():
     services = get_services()
     edit_challenge_service(services)
 
 
-def dns_task(public_ip):
+def cert_task(public_ip):
     certs = get_certificates()
     for cert in certs:
         hostnames = cert["spec"]["dnsNames"]
@@ -149,11 +163,26 @@ def dns_task(public_ip):
             create_or_update_a_record(hostname.split(DOMAIN)[0][0:-1], public_ip)
 
 
+def ingress_dns_task(public_ip):
+    ingress_list = get_ingresses()
+    for ingress in ingress_list:
+        print(ingress)
+        hostnames = []
+        for rule in ingress.spec.rules:
+            if _is_controlled_domain(rule.host):
+                hostnames.append(rule.host)
+        for hostname in hostnames:
+            print(f"Handling hostname: {hostname}")
+            create_or_update_a_record(hostname.split(DOMAIN)[0][0:-1], public_ip)
+    return
+
+
 def hook_main():
     public_ip = get_public_ip()
-    create_or_update_a_record("902", public_ip)
-    dns_task(public_ip)
-    services_task()
+    create_or_update_a_record(OWNED_SUBDOMAIN, public_ip)
+    ingress_dns_task(public_ip)
+    cert_task(public_ip)
+    #acme_services_task()
 
 
 if __name__ == "__main__":
